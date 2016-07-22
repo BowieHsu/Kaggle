@@ -1,0 +1,126 @@
+#encoding = utf-8
+__author__ = 'xubowen'
+'''
+The implement of logistic regression classifier all by Bowie Hsu
+Date 2016/07/22
+'''
+import numpy as np
+import pandas as pd
+from sklearn.cross_validation import train_test_split
+from sklearn import preprocessing
+
+class logistic_regression(object):
+
+   eta = 0.1 #learning rate
+   lr_lambda = 1.0 #regularization rate
+   iter_num = 1000
+
+   def sigmoid_fun(self, data):
+      '''
+      np type of simoid function
+      '''
+      return 1/ ( 1 + np.exp(- data))
+
+   def update(self, label, data):
+      '''
+      return negative log loss
+      '''
+      d = data.shape[1]
+      n = data.shape[0]
+      gradient = np.zeros(d, dtype= 'float')
+      #print data[:,0], data[:,1]
+      #print "res",( label - self.p) * np.transpose(data[:,0])
+      for i in range(d):
+         gradient[i] = ((np.sum((self.p - label) * data[:,i])) + (self.lr_lambda * self.w[i]))
+         self.w[i] -= self.eta * gradient[i]/n
+      print self.w
+      #print gradient
+
+   def loss_fun(self, label):
+      '''
+      calculate the loss function of logistic regression to check weather the classifier is getting better
+      '''
+      n = len(label)
+      val = 0.
+      for i in range(n):
+         val += np.log(1 + np.exp( - label[i] * self.p[i]))
+      return val
+
+   def train(self, data, label):
+      '''
+      train logistic regression
+      '''
+      train_data = np.array(data)
+      train_label = np.array(label)
+      local_train_label = np.zeros(train_label.shape[0])
+      self.n = train_data.shape[0] # the num of sample
+      self.d = train_data.shape[1] # the dim of feature
+      self.w = np.zeros(self.d, dtype = 'float') #the theta of regression
+      self.p = np.zeros(self.n, dtype = 'float') #the probability of regression
+
+      print self.w, self.p
+
+      label_name = np.unique(train_label)
+
+      if len(label_name) ==  2:
+         local_train_label = train_label
+         for i in range(self.iter_num):
+            #calculate the probability
+            self.p = self.sigmoid_fun(np.dot(train_data, self.w))
+            self.update(local_train_label, train_data)
+
+            loss = self.loss_fun(local_train_label)
+            #print "loss", loss
+
+      else:
+         for name in label_name:
+            for i in range(self.n):
+               if train_label[i] == name:
+                  local_train_label[i] = 1
+               else:
+                  local_train_label[i] = 0
+
+         loss = 1.0
+
+         for i in range(self.iter_num):
+            #calculate the probability
+            self.p = self.sigmoid_fun(np.dot(train_data, self.w))
+            self.update(local_train_label, train_data)
+
+            loss = self.loss_fun(local_train_label)
+            print "loss", loss
+
+def read_fuck_data(file_name):
+   data = []
+   label = []
+   f = open(file_name, "r")
+   for line in f:
+      buf = []
+      ele = line.split(',')
+      for i in ele:
+         buf.append(float(i))
+      data.append( buf[:len(buf) - 1])
+      label.append(buf[-1])
+   return data,label
+
+if __name__ == '__main__':
+   clf = logistic_regression()
+   #file_name = 'F:/iris-data.txt'
+
+   min_max_scaler = preprocessing.MinMaxScaler(feature_range=(-1,1))
+   df = pd.read_csv('F:/data.csv', header = 0)
+   df.columns = ["grade1","grade2","label"]
+
+   x = df["label"].map(lambda x: float(x.rstrip(';')))
+   X = df[["grade1","grade2"]]
+   X = np.array(X)
+   X = min_max_scaler.fit_transform(X)
+   Y = df["label"].map(lambda x: float(x.rstrip(';')))
+   Y = np.array(Y)
+
+   X_train,X_test,Y_train,Y_test = train_test_split(X,Y,test_size=0.33)
+
+   #data, label =  read_fuck_data(file_name)
+   #data = np.array([[1,0,0],[0,1,0]])
+   #label = np.array([0,1])
+   clf.train(X, Y)
